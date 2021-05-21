@@ -1,0 +1,113 @@
+cqlsh> CREATE KEYSPACE Students WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1};
+cqlsh> DESCRIBE KEYSPACES
+
+students  system_schema  system_auth  system  system_distributed  system_traces
+
+cqlsh> USE Students;
+cqlsh:students> CREATE TABLE Student_info( RollNo int PRIMARY KEY, Name text, DOB timestamp, lastExamPercent double );
+cqlsh:students> DESCRIBE TABLE Student_info;
+
+CREATE TABLE students.student_info (
+    rollno int PRIMARY KEY,
+    dob timestamp,
+    lastexampercent double,
+    name text
+) WITH bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = '99PERCENTILE';
+
+cqlsh:students> BEGIN BATCH INSERT INTO Student_info(RollNo, Name, DOB, lastExamPercent) VALUES(21, 'Sai Hithesh', '2000-01-13', 90) APPLY BATCH;
+cqlsh:students> BEGIN BATCH INSERT INTO Student_info(RollNo, Name, DOB, lastExamPercent) VALUES(32, 'Harsha', '2000-02-10', 89) APPLY BATCH;
+cqlsh:students> BEGIN BATCH INSERT INTO Student_info(RollNo, Name, DOB, lastExamPercent) VALUES(54, 'Sandeep', '2000-01-10', 95) APPLY BATCH;
+cqlsh:students> Select * from student_info
+            ... ;
+
+ rollno | dob                             | lastexampercent | name
+--------+---------------------------------+-----------------+------------
+     32 | 2000-02-10 18:30:00.000000+0000 |              89 |    Harsha
+     21 | 2000-01-13 18:30:00.000000+0000 |              90 | Sai Hithesh
+     54 | 2000-01-10 18:30:00.000000+0000 |              95 |   Sandeep
+
+cqlsh:students> select * from student_info where RollNo IN (21, 32);
+
+ rollno | dob                             | lastexampercent | name
+--------+---------------------------------+-----------------+------------
+     21 | 2000-01-13 18:30:00.000000+0000 |              90 | Sai Hithesh
+     32 | 2000-02-10 18:30:00.000000+0000 |              89 |    Harsha
+
+(2 rows)
+cqlsh:students> CREATE INDEX ON Student_info(Name);
+cqlsh:students> SELECT * FROM student_info WHERE Name='Sandeep';
+
+ rollno | dob                             | lastexampercent | name
+--------+---------------------------------+-----------------+--------
+     54 | 2000-01-10 18:30:00.000000+0000 |              95 |   Sandeep
+
+(1 rows)
+cqlsh:students> SELECT RollNo, Name FROM Student_info LIMIT 2;
+
+ rollno | name
+--------+---------
+     32 |   Harsha
+     21 |  Sai Hithesh
+
+(2 rows)
+cqlsh:students> SELECT RollNo, Name AS "Student Name" FROM Student_info;
+
+ rollno | Student Name
+--------+--------------
+     32 |     Harsha
+     21 |   Sai Hithesh
+     54 |     Sandeep
+     
+(3 rows)
+cqlsh:students> UPDATE student_info SET Name='Harsha.K' WHERE RollNo=32;
+cqlsh:students> SELECT RollNo, Name AS "Student Name" FROM Student_info;
+
+ rollno | Student Name
+--------+--------------
+     32 |     Harsha.k
+     21 |   Sai Hithesh
+     54 |     Sandeep
+
+(3 rows)
+
+cqlsh:students> SELECT * FROM Student_info WHERE RollNo=54;
+
+ rollno | dob                             | lastexampercent | name
+--------+---------------------------------+-----------------+--------
+     54 | 2000-01-10 18:30:00.000000+0000 |              95 |   Sandeep
+
+
+(1 rows)
+cqlsh:students> DELETE LastExAMPERCENT FROM Student_info where RollNo=54
+            ... ;
+cqlsh:students> SELECT * FROM Student_info WHERE RollNo=54;
+
+ rollno | dob                             | lastexampercent | name
+--------+---------------------------------+-----------------+-----------
+     54 | 2000-01-10 18:30:00.000000+0000 |            null | Sandeep
+
+(1 rows)
+cqlsh:students> DELETE FROM Student_info where RollNo=54 ;
+cqlsh:students> SELECT * FROM Student_info;
+
+
+ rollno | dob                             | lastexampercent | name
+--------+---------------------------------+-----------------+------------
+     21 | 2000-01-13 18:30:00.000000+0000 |              90 | Sai Hithesh
+     32 | 2000-02-10 18:30:00.000000+0000 |              89 |    Harsha.k
+
+(2 rows)
+
